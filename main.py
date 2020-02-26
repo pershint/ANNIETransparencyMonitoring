@@ -10,14 +10,14 @@ import collections
 sns.set_context('poster')
 sns.set(font_scale=1.4)
 
-DATEDB = "./DB/RunDate.json"
+LEDNUM = 6
+DATEDB = "./DB/RunDateLED%i.json"%(LEDNUM)
 GAINDB = "./DB/TransparencyGains.json"
 
-DATAPATH = "./data/Transparency/"
+DATAPATH = "./data/Transparency/LED%i/"%(LEDNUM)
 
 if __name__ == "__main__":
-    LEDS = [6]
-    TUBES = [356,357,360,364,365,367,368,370]
+    TUBES = [356,364,365,368,370,357,367] #360 has low gain, high uncertainty on fit
     intensity_bases = {}
     relative_intensities = [1.0]
     relative_intensity_stdevs = [0.0]
@@ -36,31 +36,30 @@ if __name__ == "__main__":
     for j,date in enumerate(data):
         print(date)
         r = int(data[date])
-        for k,l in enumerate(LEDS):
-            myfile = ROOT.TFile.Open("%sLEDRun%iS0LED%i_AllPMTs_PMTStability_Run0.root"%(DATAPATH,r,l))
-            these_means = []
-            for t in TUBES:
-                myhist = myfile.Get("hist_charge_%i"%(t))
-                themean = myhist.GetMean()
-                if j==0:
-                    alldata["run"].append(r)
-                    alldata["LED"].append(l)
-                    alldata["date"].append(date)
-                    alldata["channel"].append(t)
-                    alldata["charge_mean"].append(themean)
-                    alldata["QPerPE"].append(gd.loc[gd["Channel"] == t, 'c1Mu'].mean())
-                    alldata["QPerPEUnc"].append(gd.loc[gd["Channel"] == t, 'c1Mu'].std())
-                    alldata["relative_mean"].append(1.0)
-                    intensity_bases[t] = themean
-                else:
-                    alldata["run"].append(r)
-                    alldata["LED"].append(l)
-                    alldata["date"].append(date)
-                    alldata["channel"].append(t)
-                    alldata["QPerPE"].append(gd.loc[gd["Channel"] == t, 'c1Mu'].mean())
-                    alldata["QPerPEUnc"].append(gd.loc[gd["Channel"] == t, 'c1Mu'].std())
-                    alldata["charge_mean"].append(themean)
-                    alldata["relative_mean"].append(themean/intensity_bases[t])
+        myfile = ROOT.TFile.Open("%sLEDRun%iS0LED%i_AllPMTs_PMTStability_Run0.root"%(DATAPATH,r,LEDNUM))
+        these_means = []
+        for t in TUBES:
+            myhist = myfile.Get("hist_charge_%i"%(t))
+            themean = myhist.GetMean()
+            if j==0:
+                alldata["run"].append(r)
+                alldata["LED"].append(LEDNUM)
+                alldata["date"].append(date)
+                alldata["channel"].append(t)
+                alldata["charge_mean"].append(themean)
+                alldata["QPerPE"].append(gd.loc[gd["Channel"] == t, 'c1Mu'].mean())
+                alldata["QPerPEUnc"].append(gd.loc[gd["Channel"] == t, 'c1Mu'].std())
+                alldata["relative_mean"].append(1.0)
+                intensity_bases[t] = themean
+            else:
+                alldata["run"].append(r)
+                alldata["LED"].append(LEDNUM)
+                alldata["date"].append(date)
+                alldata["channel"].append(t)
+                alldata["QPerPE"].append(gd.loc[gd["Channel"] == t, 'c1Mu'].mean())
+                alldata["QPerPEUnc"].append(gd.loc[gd["Channel"] == t, 'c1Mu'].std())
+                alldata["charge_mean"].append(themean)
+                alldata["relative_mean"].append(themean/intensity_bases[t])
     print("RELATIVE MEANS:")
     print(alldata["relative_mean"])
     ndpd = pd.DataFrame(alldata)
@@ -71,7 +70,7 @@ if __name__ == "__main__":
     ax.set_ylabel("Charge mean average, relative to first day") 
     plt.xticks(rotation='30',fontsize=10)
     plt.title(("Average of ETEL charge means (all PMTs normalized to first day)\n" +
-        "LED 6 only (PIN 3500)"))
+        "LED %i only (PIN 3500)"%(LEDNUM)))
     plt.show()
 
     fig = plt.figure()
@@ -81,7 +80,7 @@ if __name__ == "__main__":
     ax.set_ylabel("PMT charge mean (nC)") 
     plt.xticks(rotation='30',fontsize=12)
     plt.title(("Mean of charge distribution from ETEL tubes flashed with \n" +
-        "LED 6 only (PIN 3500)"))
+        "LED %i only (PIN 3500)"%(LEDNUM)))
     plt.show()
 
     fig = plt.figure()
@@ -91,7 +90,7 @@ if __name__ == "__main__":
     ax.set_ylabel("PMT charge mean, normalized to first day") 
     plt.xticks(rotation='30')
     plt.title(("ETEL charge means (normalized to first day) \n" +
-        "LED 6 only (PIN 3500)"))
+        "LED %i only (PIN 3500)"%(LEDNUM)))
     plt.show()
 
     fig,ax = plt.subplots()
@@ -114,11 +113,15 @@ if __name__ == "__main__":
 
     fig,ax = plt.subplots()
     ax.bar(dates,date_sums,yerr=date_stdevs,alpha=0.5,color='purple',ecolor='black')
+    every_nth = 6
+    for n,label in enumerate(ax.xaxis.get_ticklabels()):
+        if n % every_nth != 0:
+            label.set_visible(False)
     ax.set_xlabel("Date") 
-    ax.set_ylabel("Total Avg. PE per flash")
-    plt.xticks(rotation='30',fontsize=12)
-    plt.title(("Mean PE seen by all ETEL tubes per LED flash \n" +
-        "LED 6 only (PIN 3500)"))
+    ax.set_ylabel("Total PE per flash")
+    plt.xticks(fontsize=12)
+    plt.title(("Total PE seen by 7 top tubes per LED flash \n" +
+        " LED %i only"%(LEDNUM)))
     plt.show()
     
     fig,ax = plt.subplots()
@@ -143,5 +146,5 @@ if __name__ == "__main__":
     ax.set_ylabel("PEs") 
     plt.xticks(rotation='30',fontsize=10)
     plt.title(("Average PE seen per LED flash \n" +
-        "LED 6 only (PIN 3500)"))
+        "LED %i only (PIN 3500)"%(LEDNUM)))
     plt.show()
